@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { apiRequest, getAccessToken } from '@/lib/api-client';
 
 type Puzzle = { id: string; imageUrl: string };
+import { useAuth } from '@/contexts/AuthContext';
 type Profile = { highScore: number; username: string };
 
 export default function PlayPage() {
@@ -20,25 +21,29 @@ export default function PlayPage() {
   const [highScore, setHighScore] = useState<number | null>(null);
   const [username, setUsername] = useState<string>('');
   const [isNewRecord, setIsNewRecord] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
   // ── Auth guard + initial fetch ────────────────────────
-  useEffect(() => {
-    if (!getAccessToken()) {
-      router.replace('/login');
-      return;
-    }
+  // ── Auth guard + initial fetch ────────────────────────
+useEffect(() => {
+  if (authLoading) return;           // wait for AuthProvider to bootstrap
+  if (!user) {
+    router.replace('/login');        // not logged in → login page
+    return;
+  }
 
-    (async () => {
-      try {
-        const me = (await apiRequest('/users/me')) as Profile;
-        setHighScore(me.highScore);
-        setUsername(me.username);
-      } catch {
-        // silent — high score will just be hidden
-      }
-      loadPuzzle();
-    })();
-  }, [router]);
+  // Logged in → fetch profile + first puzzle
+  (async () => {
+    try {
+      const me = (await apiRequest('/users/me')) as Profile;
+      setHighScore(me.highScore);
+      setUsername(me.username);
+    } catch {
+      // silent — profile fetch failure shouldn't block gameplay
+    }
+    loadPuzzle();
+  })();
+}, [authLoading, user, router]);
 
   async function loadPuzzle() {
     setLoading(true);
