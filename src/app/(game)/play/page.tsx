@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { apiRequest, getAccessToken } from '@/lib/api-client';
 import { useAuth } from '@/contexts/AuthContext';
 import GameOverModal from '../../components/game/GameOverModal';
-
+import GameNav from '../../components/game/GameNav';
 type Puzzle = { id: string; imageUrl: string };
 type Profile = { highScore: number; username: string };
 
@@ -145,7 +145,10 @@ useEffect(() => {
 
   return (
     <>
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 p-4">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500">
+    <GameNav />
+
+    <main className="flex flex-1 items-center justify-center overflow-hidden p-4">
       <div className="w-full max-w-lg rounded-3xl border border-white/60 bg-white/90 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
 
         {/* ── Personal Best Banner ─────────────────────── */}
@@ -240,6 +243,7 @@ useEffect(() => {
         </form>
       </div>
     </main>
+    </div>
     <GameOverModal
         isOpen={gameOver}
         score={score}
