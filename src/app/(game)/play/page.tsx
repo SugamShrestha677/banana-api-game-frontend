@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest, getAccessToken } from '@/lib/api-client';
+import { useAuth } from '@/contexts/AuthContext';
+import GameOverModal from '../../components/game/GameOverModal';
 
 type Puzzle = { id: string; imageUrl: string };
-import { useAuth } from '@/contexts/AuthContext';
 type Profile = { highScore: number; username: string };
 
 export default function PlayPage() {
@@ -21,29 +22,39 @@ export default function PlayPage() {
   const [highScore, setHighScore] = useState<number | null>(null);
   const [username, setUsername] = useState<string>('');
   const [isNewRecord, setIsNewRecord] = useState(false);
+
+  // 👇 new
+  const [gameOver, setGameOver] = useState(false);
+  const [roundsPlayed, setRoundsPlayed] = useState(0);
+
   const { user, loading: authLoading } = useAuth();
 
-  // ── Auth guard + initial fetch ────────────────────────
-  // ── Auth guard + initial fetch ────────────────────────
-useEffect(() => {
-  if (authLoading) return;           // wait for AuthProvider to bootstrap
-  if (!user) {
-    router.replace('/login');        // not logged in → login page
-    return;
-  }
-
-  // Logged in → fetch profile + first puzzle
-  (async () => {
-    try {
-      const me = (await apiRequest('/users/me')) as Profile;
-      setHighScore(me.highScore);
-      setUsername(me.username);
-    } catch {
-      // silent — profile fetch failure shouldn't block gameplay
+  // Auth guard + initial fetch
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.replace('/login');
+      return;
     }
-    loadPuzzle();
-  })();
-}, [authLoading, user, router]);
+
+    (async () => {
+      try {
+        const me = (await apiRequest('/users/me')) as Profile;
+        setHighScore(me.highScore);
+        setUsername(me.username);
+      } catch {
+        /* silent */
+      }
+      loadPuzzle();
+    })();
+  }, [authLoading, user, router]);
+
+  // Focus the input whenever a fresh puzzle loads (and we're not in a modal)
+useEffect(() => {
+  if (puzzle && !loading && !gameOver) {
+    inputRef.current?.focus();
+  }
+}, [puzzle, loading, gameOver]);
 
   async function loadPuzzle() {
     setLoading(true);
@@ -77,9 +88,11 @@ useEffect(() => {
     }
   }
 
+  
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!puzzle || loading) return;
+    if (!puzzle || loading || gameOver) return; // 👈 block while modal is up
 
     setLoading(true);
     try {
@@ -89,8 +102,8 @@ useEffect(() => {
       });
 
       if (result.correct) {
-        const newScore = score + 1;
-        setScore(newScore);
+        setScore((s) => s + 1);
+        setRoundsPlayed((r) => r + 1);        // 👈 track rounds
         setFeedback({ ok: true, msg: 'Correct! 🍌' });
         setTimeout(loadPuzzle, 900);
       } else {
@@ -102,15 +115,8 @@ useEffect(() => {
         });
 
         if (remaining <= 0) {
-          setFeedback({ ok: false, msg: `Game over. Final score: ${score}.` });
-          await handleGameOver(score);
-
-          setTimeout(() => {
-            setScore(0);
-            setLives(3);
-            setIsNewRecord(false);
-            loadPuzzle();
-          }, 2200);
+          await handleGameOver(score);        // persist first
+          setGameOver(true);                  // 👈 modal takes over
         } else {
           setTimeout(loadPuzzle, 1400);
         }
@@ -122,9 +128,23 @@ useEffect(() => {
     }
   }
 
+  // 👇 new — reset only when the player clicks "Play Again"
+  function handlePlayAgain() {
+    setScore(0);
+    setLives(3);
+    setRoundsPlayed(0);
+    setIsNewRecord(false);
+    setGameOver(false);
+    setFeedback(null);
+    loadPuzzle();
+  }
+
   const bestDisplay = highScore ?? 0;
+  const inputRef = useRef<HTMLInputElement>(null);
+
 
   return (
+    <>
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 p-4">
       <div className="w-full max-w-lg rounded-3xl border border-white/60 bg-white/90 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
 
@@ -200,9 +220,11 @@ useEffect(() => {
         {/* ── Answer form ──────────────────────────────── */}
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
+            ref={inputRef}
             type="text"
             inputMode="numeric"
             placeholder="Enter your answer"
+            pattern="[0-9]*"
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
             disabled={loading || !puzzle}
@@ -218,5 +240,15 @@ useEffect(() => {
         </form>
       </div>
     </main>
+    <GameOverModal
+        isOpen={gameOver}
+        score={score}
+        bestScore={bestDisplay}
+        roundsPlayed={roundsPlayed}
+        onPlayAgain={handlePlayAgain}
+        onExit={() => router.push('/')}
+      />
+    </>
+    
   );
 }

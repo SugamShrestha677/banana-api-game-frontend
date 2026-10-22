@@ -14,17 +14,31 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   setUser: (user: User | null) => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   setUser: () => {},
+  logout: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const logout = async () => {
+  try {
+    await apiRequest('/auth/logout', { method: 'POST' });
+  } catch {
+    // Network failure shouldn't trap the user in a logged-in state.
+    // The server clears the cookie on the next successful call.
+  } finally {
+    setAccessToken(null);
+    setUser(null);
+  }
+};
 
   useEffect(() => {
     // If the user already has an access token in memory (e.g., just logged in),
@@ -55,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, setUser }}>
+    <AuthContext.Provider value={{ user, loading, setUser, logout  }}>
       {children}
     </AuthContext.Provider>
   );
