@@ -1,25 +1,67 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { apiRequest, setAccessToken } from '@/lib/api-client';
-import GoogleButton from '@/components/auth/GoogleButton';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { apiRequest, setAccessToken } from "@/lib/api-client";
+import GoogleButton from "@/components/auth/GoogleButton";
 
 const FLOATING_BANANAS = [
-  { left: '6%', top: '12%', size: 'text-5xl', delay: '0s', duration: '8s', opacity: 'opacity-40' },
-  { left: '85%', top: '18%', size: 'text-6xl', delay: '1.2s', duration: '10s', opacity: 'opacity-30' },
-  { left: '14%', top: '72%', size: 'text-6xl', delay: '0.6s', duration: '9s', opacity: 'opacity-30' },
-  { left: '78%', top: '76%', size: 'text-4xl', delay: '2s', duration: '7s', opacity: 'opacity-40' },
-  { left: '45%', top: '5%', size: 'text-4xl', delay: '1.6s', duration: '11s', opacity: 'opacity-25' },
-  { left: '92%', top: '52%', size: 'text-3xl', delay: '0.3s', duration: '8.5s', opacity: 'opacity-25' },
+  {
+    left: "6%",
+    top: "12%",
+    size: "text-5xl",
+    delay: "0s",
+    duration: "8s",
+    opacity: "opacity-40",
+  },
+  {
+    left: "85%",
+    top: "18%",
+    size: "text-6xl",
+    delay: "1.2s",
+    duration: "10s",
+    opacity: "opacity-30",
+  },
+  {
+    left: "14%",
+    top: "72%",
+    size: "text-6xl",
+    delay: "0.6s",
+    duration: "9s",
+    opacity: "opacity-30",
+  },
+  {
+    left: "78%",
+    top: "76%",
+    size: "text-4xl",
+    delay: "2s",
+    duration: "7s",
+    opacity: "opacity-40",
+  },
+  {
+    left: "45%",
+    top: "5%",
+    size: "text-4xl",
+    delay: "1.6s",
+    duration: "11s",
+    opacity: "opacity-25",
+  },
+  {
+    left: "92%",
+    top: "52%",
+    size: "text-3xl",
+    delay: "0.3s",
+    duration: "8.5s",
+    opacity: "opacity-25",
+  },
 ];
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -27,20 +69,20 @@ export default function LoginPage() {
     e.preventDefault();
     if (loading) return;
 
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
-      const data = await apiRequest('/auth/login', {
-        method: 'POST',
+      const data = await apiRequest("/auth/login", {
+        method: "POST",
         body: JSON.stringify({ email, password }),
       });
       setAccessToken(data.accessToken);
-      router.push('/play');
+      router.push("/play");
       // NOTE: intentionally no setLoading(false) here — we keep the button
       // in its loading state while the route transition happens.
     } catch (err) {
-      setError((err as Error).message || 'Could not log you in. Try again.');
+      setError((err as Error).message || "Could not log you in. Try again.");
       setLoading(false);
     }
   };
@@ -48,7 +90,10 @@ export default function LoginPage() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500 p-4">
       {/* Floating background bananas */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 select-none">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 select-none"
+      >
         {FLOATING_BANANAS.map((b, i) => (
           <span
             key={i}
@@ -99,7 +144,10 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label
+                htmlFor="email"
+                className="mb-1.5 block text-sm font-semibold text-slate-700"
+              >
                 Email
               </label>
               <input
@@ -117,16 +165,38 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label
-                htmlFor="password"
-                className="mb-1.5 block text-sm font-semibold text-slate-700"
-              >
-                Password
-              </label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-semibold text-slate-700"
+                >
+                  Password
+                </label>
+                {error && (
+                  <div
+                    key={error}
+                    role="alert"
+                    aria-live="polite"
+                    className="shake mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-700"
+                  >
+                    <span aria-hidden="true" className="mt-px">
+                      ⚠️
+                    </span>
+                    <div>
+                      <Link
+                        href="/forgot-password"
+                        className="mt-1 inline-block text-xs font-semibold text-red-700 underline underline-offset-2 hover:text-red-800"
+                      >
+                        Forgot your password?
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="relative">
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
@@ -138,10 +208,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2.5 py-1.5 text-sm text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? "🙈" : "👁️"}
                 </button>
               </div>
             </div>
@@ -179,25 +249,25 @@ export default function LoginPage() {
                   Peeling…
                 </span>
               ) : (
-                'Log In 🍌'
+                "Log In 🍌"
               )}
             </button>
           </form>
 
           <div className="relative my-5">
-  <div className="absolute inset-0 flex items-center">
-    <div className="w-full border-t border-slate-200" />
-  </div>
-  <div className="relative flex justify-center text-xs uppercase">
-    <span className="bg-white/90 px-2 text-slate-400">or</span>
-  </div>
-</div>
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white/90 px-2 text-slate-400">or</span>
+            </div>
+          </div>
 
-<GoogleButton />
+          <GoogleButton />
 
           {/* Footer */}
           <p className="mt-6 text-center text-sm text-slate-500">
-            New to the bunch?{' '}
+            New to the bunch?{" "}
             <Link
               href="/register"
               className="font-semibold text-amber-600 underline-offset-2 transition hover:text-amber-700 hover:underline"

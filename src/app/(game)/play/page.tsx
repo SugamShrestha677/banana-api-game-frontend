@@ -105,7 +105,7 @@ useEffect(() => {
         setScore((s) => s + 1);
         setRoundsPlayed((r) => r + 1);        // 👈 track rounds
         setFeedback({ ok: true, msg: 'Correct! 🍌' });
-        setTimeout(loadPuzzle, 900);
+        setTimeout(loadPuzzle, 100);
       } else {
         const remaining = lives - 1;
         setLives(remaining);
@@ -118,7 +118,7 @@ useEffect(() => {
           await handleGameOver(score);        // persist first
           setGameOver(true);                  // 👈 modal takes over
         } else {
-          setTimeout(loadPuzzle, 1400);
+          setTimeout(loadPuzzle, 400);
         }
       }
     } catch (err) {
