@@ -6,12 +6,15 @@ import { apiRequest } from '@/lib/api-client';
 import { useAuth } from '@/contexts/AuthContext';
 
 // ─── Types ──────────────────────────────────────────────
+type Difficulty = 'easy' | 'medium' | 'hard';
+type DifficultyFilter = 'all' | Difficulty;
+
 type Entry = {
   id: string;
   username: string;
   avatarUrl: string | null;
   highScore: number;
-  rank: number | string;   // Postgres RANK() returns bigint → string
+  rank: number | string;
 };
 
 type CurrentUser = {
@@ -24,11 +27,24 @@ type ApiResponse = {
   entries: Entry[];
   currentUser: CurrentUser | null;
   total: number;
+  difficulty: Difficulty | null;
 };
 
 // ─── Constants ──────────────────────────────────────────
 const PAGE_SIZE = 20;
 const MEDALS = ['🥇', '🥈', '🥉'];
+
+const DIFFICULTY_TABS: {
+  value: DifficultyFilter;
+  label: string;
+  emoji: string;
+  accent: string;
+}[] = [
+  { value: 'all', label: 'All Modes', emoji: '🏆', accent: 'from-slate-300 to-slate-400' },
+  { value: 'easy', label: 'Easy', emoji: '🍦', accent: 'from-emerald-400 to-green-500' },
+  { value: 'medium', label: 'Medium', emoji: '🔥', accent: 'from-amber-400 to-orange-500' },
+  { value: 'hard', label: 'Hard', emoji: '💀', accent: 'from-rose-500 to-red-600' },
+];
 
 const PODIUM_STYLES = [
   { // #1
@@ -68,6 +84,7 @@ const FLOATING_BANANAS = [
 export default function LeaderboardPage() {
   const { user, loading: authLoading } = useAuth();
 
+  const [difficulty, setDifficulty] = useState<DifficultyFilter>('all');
   const [entries, setEntries] = useState<Entry[]>([]);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [total, setTotal] = useState(0);
@@ -75,36 +92,43 @@ export default function LeaderboardPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchPage = useCallback(async (offset: number, append = false) => {
-    if (append) setLoadingMore(true);
-    else setLoading(true);
-    setError('');
+  const fetchPage = useCallback(
+    async (offset: number, append = false) => {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+      setError('');
 
-    try {
-      const res: ApiResponse = await apiRequest(
-        `/leaderboard?limit=${PAGE_SIZE}&offset=${offset}`
-      );
+      try {
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          offset: String(offset),
+        });
+        if (difficulty !== 'all') params.set('difficulty', difficulty);
 
-      const normalized = res.entries.map((e) => ({ ...e, rank: Number(e.rank) }));
+        const res: ApiResponse = await apiRequest(`/leaderboard?${params.toString()}`);
 
-      if (append) setEntries((prev) => [...prev, ...normalized]);
-      else setEntries(normalized);
+        const normalized = res.entries.map((e) => ({ ...e, rank: Number(e.rank) }));
 
-      setCurrentUser(
-        res.currentUser
-          ? { ...res.currentUser, rank: Number(res.currentUser.rank) }
-          : null
-      );
-      setTotal(res.total);
-    } catch (err) {
-      setError((err as Error).message || 'Could not load the leaderboard.');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
+        if (append) setEntries((prev) => [...prev, ...normalized]);
+        else setEntries(normalized);
 
-  // Wait for auth to bootstrap so the Bearer token is present (currentUser populated correctly)
+        setCurrentUser(
+          res.currentUser
+            ? { ...res.currentUser, rank: Number(res.currentUser.rank) }
+            : null
+        );
+        setTotal(res.total);
+      } catch (err) {
+        setError((err as Error).message || 'Could not load the leaderboard.');
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [difficulty]
+  );
+
+  // Re-fetch whenever difficulty changes (after auth bootstrap)
   useEffect(() => {
     if (authLoading) return;
     fetchPage(0);
@@ -119,9 +143,18 @@ export default function LeaderboardPage() {
   const userInVisibleList =
     !!user && entries.some((e) => e.username === user.username);
 
+  const activeTab = DIFFICULTY_TABS.find((t) => t.value === difficulty)!;
+  const subtitle =
+    difficulty === 'all'
+      ? total > 0
+        ? `${total.toLocaleString()} ${total === 1 ? 'champion' : 'champions'} across all modes`
+        : 'Be the first to claim the throne'
+      : total > 0
+      ? `${total.toLocaleString()} ${total === 1 ? 'champion' : 'champions'} in ${activeTab.label} mode`
+      : `No ${activeTab.label} champions yet`;
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-yellow-300 via-amber-400 to-orange-500">
-      {/* Floating bananas */}
       <div aria-hidden className="pointer-events-none absolute inset-0 select-none">
         {FLOATING_BANANAS.map((b, i) => (
           <span
@@ -141,18 +174,14 @@ export default function LeaderboardPage() {
 
       <div className="relative mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
         {/* ─── Hero ─────────────────────────────── */}
-        <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-6 flex flex-col items-center text-center">
           <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-yellow-300 to-amber-500 text-4xl shadow-xl shadow-amber-500/40">
             🏆
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg sm:text-5xl">
             Hall of Fame
           </h1>
-          <p className="mt-2 text-sm font-semibold text-amber-950/80">
-            {total > 0
-              ? `${total.toLocaleString()} ${total === 1 ? 'champion' : 'champions'} ranked`
-              : 'Be the first to claim the throne'}
-          </p>
+          <p className="mt-2 text-sm font-semibold text-amber-950/80">{subtitle}</p>
 
           <div className="mt-4 flex gap-2">
             <button
@@ -181,22 +210,40 @@ export default function LeaderboardPage() {
           </div>
         </div>
 
-        {/* ─── Current user card (when outside visible list) ─── */}
+        {/* ─── Difficulty tabs ─────────────────── */}
+        <div className="mb-6 flex flex-wrap justify-center gap-2">
+          {DIFFICULTY_TABS.map((tab) => {
+            const active = difficulty === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setDifficulty(tab.value)}
+                disabled={loading}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[11px] font-extrabold uppercase tracking-wider shadow-md transition ${
+                  active
+                    ? `bg-gradient-to-r ${tab.accent} text-white ring-2 ring-white/80 scale-105`
+                    : 'bg-white/70 text-amber-900 hover:bg-white'
+                } disabled:opacity-60`}
+              >
+                <span>{tab.emoji}</span>
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
         {!authLoading && user && currentUser && !userInVisibleList && (
-          <CurrentUserCard currentUser={currentUser} />
+          <CurrentUserCard currentUser={currentUser} difficulty={difficulty} />
         )}
 
-        {/* ─── Error ────────────────────────────── */}
         {error && <ErrorBanner message={error} onRetry={handleRefresh} />}
 
-        {/* ─── Loading ──────────────────────────── */}
         {loading && <LoadingSkeleton />}
 
-        {/* ─── Content ──────────────────────────── */}
         {!loading && !error && (
           <>
             {entries.length === 0 ? (
-              <EmptyState />
+              <EmptyState difficulty={difficulty} />
             ) : (
               <>
                 {top3.length > 0 && (
@@ -226,7 +273,13 @@ export default function LeaderboardPage() {
                     >
                       {loadingMore ? (
                         <>
-                          <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <svg
+                            className="h-4 w-4 animate-spin"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                          >
                             <circle cx="12" cy="12" r="9" className="opacity-25" />
                             <path d="M21 12a9 9 0 0 0-9-9" strokeLinecap="round" />
                           </svg>
@@ -239,9 +292,10 @@ export default function LeaderboardPage() {
                   </div>
                 )}
 
-                {/* ─── Footer ──────────────────── */}
                 <p className="mt-10 text-center text-xs font-semibold text-amber-950/60">
-                  Scores updated in real time — powered by the Banana API 🍌
+                  {difficulty === 'all'
+                    ? 'Overall best across all difficulties — powered by the Banana API 🍌'
+                    : `${activeTab.label} mode leaderboard — powered by the Banana API 🍌`}
                 </p>
               </>
             )}
@@ -249,7 +303,6 @@ export default function LeaderboardPage() {
         )}
       </div>
 
-      {/* Animations */}
       <style>{`
         @keyframes banana-float {
           0%, 100% { transform: translateY(0) rotate(-10deg); }
@@ -262,22 +315,31 @@ export default function LeaderboardPage() {
   );
 }
 
-// ─── Podium (top 3) ─────────────────────────────────────
-function Podium({ top3, currentUsername }: { top3: Entry[]; currentUsername?: string }) {
-  // Visual order: #2, #1, #3
-  const ordered = [top3[1], top3[0], top3[2]].filter(Boolean) as Entry[];
-
+// ─── Podium (top 3) — fixed mobile order ────────────────
+function Podium({
+  top3,
+  currentUsername,
+}: {
+  top3: Entry[];
+  currentUsername?: string;
+}) {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      {ordered.map((entry) => {
-        const place = top3.indexOf(entry) + 1;
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end">
+      {top3.map((entry, idx) => {
+        const place = idx + 1;
+        // Mobile: 1 → 2 → 3 (natural stacking)
+        // Desktop: 2 → 1 → 3 (classic podium with 1st centred)
+        const orderClass =
+          place === 1 ? 'sm:order-2' : place === 2 ? 'sm:order-1' : 'sm:order-3';
+        const liftClass = place === 1 ? 'sm:-translate-y-2' : '';
         return (
-          <PodiumCard
-            key={entry.id}
-            entry={entry}
-            place={place}
-            isCurrentUser={entry.username === currentUsername}
-          />
+          <div key={entry.id} className={`${orderClass} ${liftClass}`}>
+            <PodiumCard
+              entry={entry}
+              place={place}
+              isCurrentUser={entry.username === currentUsername}
+            />
+          </div>
         );
       })}
     </div>
@@ -301,9 +363,7 @@ function PodiumCard({
     <div
       className={`relative flex flex-col items-center rounded-2xl border-2 ${s.border} bg-white/90 p-5 backdrop-blur-xl transition-transform duration-200 hover:-translate-y-1 ${
         isChampion ? 'shadow-2xl' : 'shadow-xl'
-      } ${s.glow} ${
-        isCurrentUser ? 'ring-4 ring-amber-300/60' : ''
-      }`}
+      } ${s.glow} ${isCurrentUser ? 'ring-4 ring-amber-300/60' : ''}`}
     >
       {isChampion && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-950 shadow-lg shadow-amber-500/50">
@@ -344,7 +404,13 @@ function PodiumCard({
 }
 
 // ─── Rank row ───────────────────────────────────────────
-function RankRow({ entry, isCurrentUser }: { entry: Entry; isCurrentUser: boolean }) {
+function RankRow({
+  entry,
+  isCurrentUser,
+}: {
+  entry: Entry;
+  isCurrentUser: boolean;
+}) {
   const initial = entry.username[0]?.toUpperCase() ?? '?';
   const rank = Number(entry.rank);
 
@@ -397,8 +463,15 @@ function RankRow({ entry, isCurrentUser }: { entry: Entry; isCurrentUser: boolea
   );
 }
 
-// ─── Current user card (outside the visible list) ───────
-function CurrentUserCard({ currentUser }: { currentUser: CurrentUser }) {
+// ─── Current user card ─────────────────────────────────
+function CurrentUserCard({
+  currentUser,
+  difficulty,
+}: {
+  currentUser: CurrentUser;
+  difficulty: DifficultyFilter;
+}) {
+  const tab = DIFFICULTY_TABS.find((t) => t.value === difficulty)!;
   return (
     <div className="mb-6 overflow-hidden rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 shadow-xl shadow-amber-500/30">
       <div className="flex items-center gap-4 p-4 sm:p-5">
@@ -407,7 +480,7 @@ function CurrentUserCard({ currentUser }: { currentUser: CurrentUser }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-amber-900/70">
-            Your Rank
+            Your Rank · {tab.emoji} {tab.label}
           </p>
           <p className="truncate text-xl font-extrabold text-amber-950 sm:text-2xl">
             #{Number(currentUser.rank)}
@@ -464,28 +537,37 @@ function LoadingSkeleton() {
 }
 
 // ─── Empty state ────────────────────────────────────────
-function EmptyState() {
+function EmptyState({ difficulty }: { difficulty: DifficultyFilter }) {
+  const tab = DIFFICULTY_TABS.find((t) => t.value === difficulty)!;
   return (
     <div className="rounded-2xl border border-white/60 bg-white/90 p-12 text-center shadow-xl backdrop-blur-xl">
       <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-yellow-300 to-amber-500 text-4xl shadow-lg shadow-amber-500/30">
         🍌
       </div>
-      <h2 className="mb-2 text-xl font-extrabold text-slate-900">No champions yet</h2>
+      <h2 className="mb-2 text-xl font-extrabold text-slate-900">
+        No {tab.label} champions yet
+      </h2>
       <p className="mb-6 text-sm text-slate-500">
-        Be the first to earn a spot on the leaderboard.
+        Be the first to earn a spot on this leaderboard.
       </p>
       <Link
         href="/play"
         className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 font-bold text-amber-950 shadow-lg shadow-amber-500/30 transition hover:from-amber-500 hover:to-yellow-600"
       >
-        Play Now 🍌
+        Play {tab.label} Now 🍌
       </Link>
     </div>
   );
 }
 
 // ─── Error banner ───────────────────────────────────────
-function ErrorBanner({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorBanner({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
   return (
     <div
       role="alert"
