@@ -23,6 +23,23 @@ type Stats = {
   accuracy: number;
   bestStreak: number;
   rank: number | null;
+  achievements?: {
+    summary: {
+      total: number;
+      unlockedCount: number;
+      lockedCount: number;
+      completionPercentage: number;
+      badgeScore: number;
+      title: string;
+    };
+    recentOwned: Array<{
+      id: string;
+      name: string;
+      icon: string;
+      tier: string;
+      description: string;
+    }>;
+  };
 };
 
 type StatsResponse = {
@@ -101,12 +118,18 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Link
                   href="/play"
                   className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2.5 text-sm font-bold text-amber-950 shadow-lg shadow-amber-500/30 transition hover:from-amber-500 hover:to-yellow-600"
                 >
                   Play
+                </Link>
+                <Link
+                  href="/achievements"
+                  className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900 transition hover:bg-amber-100"
+                >
+                  🏅 Badges
                 </Link>
                 <Link
                   href="/leaderboard"
@@ -144,9 +167,9 @@ export default function ProfilePage() {
               accent="green"
             />
             <StatCard
-              icon="🔥"
-              label="Best Streak"
-              value={stats.bestStreak}
+              icon="🏅"
+              label="Badges Unlocked"
+              value={`${stats.achievements?.summary.unlockedCount ?? 0} / ${stats.achievements?.summary.total ?? 16}`}
               accent="red"
             />
           </div>
@@ -159,6 +182,69 @@ export default function ProfilePage() {
             <span className="rounded-full bg-white/20 px-3 py-1 backdrop-blur-sm">
               {stats.correctAnswers} / {stats.totalAnswers} correct answers
             </span>
+            {stats.achievements && (
+              <span className="rounded-full bg-white/20 px-3 py-1 backdrop-blur-sm">
+                ⭐ {stats.achievements.summary.badgeScore} Badge XP
+              </span>
+            )}
+          </div>
+        </section>
+
+        {/* ─── Badges Showcase ───────────────────── */}
+        <section className="mt-8">
+          <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/95 p-6 shadow-xl shadow-amber-900/10 backdrop-blur-xl">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🏅</span>
+                  <h2 className="text-lg font-black text-slate-900">Badges Collection Showcase</h2>
+                </div>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Rank: <span className="font-extrabold text-amber-700">{stats.achievements?.summary.title ?? 'Banana Novice'}</span> •{' '}
+                  {stats.achievements?.summary.unlockedCount ?? 0} of {stats.achievements?.summary.total ?? 16} Unlocked (
+                  {stats.achievements?.summary.completionPercentage ?? 0}%)
+                </p>
+              </div>
+
+              <Link
+                href="/achievements"
+                className="inline-flex items-center gap-1.5 self-start rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2 text-xs font-black text-amber-950 shadow-md transition hover:from-amber-500 hover:to-yellow-600"
+              >
+                View Full Badges Vault →
+              </Link>
+            </div>
+
+            {/* Showcase Cards */}
+            {stats.achievements?.recentOwned && stats.achievements.recentOwned.length > 0 ? (
+              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.achievements.recentOwned.map((ach) => (
+                  <div
+                    key={ach.id}
+                    className="flex items-center gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/50 p-3"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-300 to-amber-500 text-2xl shadow-sm">
+                      {ach.icon}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-extrabold text-slate-900">{ach.name}</p>
+                      <p className="text-[10px] uppercase font-bold text-amber-700">{ach.tier}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 p-4 text-center">
+                <p className="text-xs font-bold text-slate-600">
+                  No badges unlocked yet! Play the banana quiz to claim your first badge. 🍌
+                </p>
+                <Link
+                  href="/play"
+                  className="mt-2 inline-block rounded-xl bg-amber-400 px-3 py-1.5 text-xs font-extrabold text-amber-950 shadow-sm hover:bg-amber-500"
+                >
+                  Play Banana Game
+                </Link>
+              </div>
+            )}
           </div>
         </section>
 
