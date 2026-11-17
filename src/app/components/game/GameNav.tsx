@@ -42,14 +42,38 @@ export default function GameNav() {
     <header className="sticky top-0 z-40 border-b border-amber-200/70 bg-white/85 backdrop-blur-xl">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Logo → home */}
-        <Link href="/" className="group flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-300 to-amber-500 text-lg shadow-md shadow-amber-500/30 transition-transform duration-300 group-hover:rotate-12">
-            🍌
-          </span>
-          <span className="text-base font-extrabold tracking-tight text-slate-900">
-            Banana Guesser
-          </span>
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/" className="group flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-300 to-amber-500 text-lg shadow-md shadow-amber-500/30 transition-transform duration-300 group-hover:rotate-12">
+              🍌
+            </span>
+            <span className="text-base font-extrabold tracking-tight text-slate-900">
+              Banana Guesser
+            </span>
+          </Link>
+
+          {/* Quick links */}
+          <nav className="hidden items-center gap-1 sm:flex">
+            <Link
+              href="/play"
+              className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-amber-100/70"
+            >
+              Play
+            </Link>
+            <Link
+              href="/achievements"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100/70"
+            >
+              <span>🏅</span> Badges
+            </Link>
+            <Link
+              href="/leaderboard"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-amber-100/70"
+            >
+              <span>🏆</span> Leaderboard
+            </Link>
+          </nav>
+        </div>
 
         {/* User menu */}
         <div ref={ref} className="relative">
@@ -100,6 +124,14 @@ export default function GameNav() {
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-amber-50"
                 >
                   <span aria-hidden="true">👤</span> Profile
+                </Link>
+                <Link
+                  href="/achievements"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-amber-50"
+                >
+                  <span aria-hidden="true">🏅</span> Badges & Achievements
                 </Link>
                 <Link
                   href="/leaderboard"
