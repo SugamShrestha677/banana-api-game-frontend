@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/api-client';
 import { useAuth } from '@/contexts/AuthContext';
+import AvatarUploader from '@/components/profile/AvatarUploader';
 
 // ─── Types ─────────────────────────────────────────────
 type ProfileUser = {
@@ -89,58 +90,48 @@ export default function ProfilePage() {
       <div className="relative mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-12">
         {/* ─── Hero card ────────────────────────── */}
         <section className="relative overflow-hidden rounded-3xl border border-white/60 bg-white/90 shadow-2xl shadow-amber-900/20 backdrop-blur-xl">
-          <div className="h-24 bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400" />
-          <div className="px-6 pb-6 sm:px-8">
-            <div className="-mt-12 flex flex-col items-center gap-4 sm:flex-row sm:items-end">
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-yellow-300 to-amber-500 text-3xl font-extrabold text-amber-950 shadow-xl shadow-amber-500/40 ring-4 ring-white">
-                {user.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.avatarUrl}
-                    alt={user.username}
-                    className="h-full w-full rounded-3xl object-cover"
-                  />
-                ) : (
-                  initial
-                )}
-              </div>
+  <div className="h-24 bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400" />
+  <div className="px-6 pb-6 sm:px-8">
+    <div className="-mt-12 flex flex-col items-center gap-4 sm:flex-row sm:items-end">
+      {/* ─── Profile picture with upload overlay ────────── */}
+      <AvatarUploader />
 
-              <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-                  {user.username}
-                </h1>
-                <p className="mt-0.5 text-sm text-slate-500">{user.email}</p>
-                <div className="mt-2 flex flex-wrap justify-center gap-2 sm:justify-start">
-                  <RoleBadge role={user.role} />
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                    Joined {joined}
-                  </span>
-                </div>
-              </div>
+      <div className="flex-1 text-center sm:text-left">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+          {user.username}
+        </h1>
+        <p className="mt-0.5 text-sm text-slate-500">{user.email}</p>
+        <div className="mt-2 flex flex-wrap justify-center gap-2 sm:justify-start">
+          <RoleBadge role={user.role} />
+          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+            Joined {joined}
+          </span>
+        </div>
+      </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href="/play"
-                  className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2.5 text-sm font-bold text-amber-950 shadow-lg shadow-amber-500/30 transition hover:from-amber-500 hover:to-yellow-600"
-                >
-                  Play
-                </Link>
-                <Link
-                  href="/achievements"
-                  className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900 transition hover:bg-amber-100"
-                >
-                  🏅 Badges
-                </Link>
-                <Link
-                  href="/leaderboard"
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Leaderboard
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/play"
+          className="rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2.5 text-sm font-bold text-amber-950 shadow-lg shadow-amber-500/30 transition hover:from-amber-500 hover:to-yellow-600"
+        >
+          Play
+        </Link>
+        <Link
+          href="/achievements"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900 transition hover:bg-amber-100"
+        >
+          🏅 Badges
+        </Link>
+        <Link
+          href="/leaderboard"
+          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+        >
+          Leaderboard
+        </Link>
+      </div>
+    </div>
+  </div>
+</section>
 
         {/* ─── Stats grid ───────────────────────── */}
         <section className="mt-6">

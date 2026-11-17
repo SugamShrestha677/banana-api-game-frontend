@@ -8,6 +8,8 @@ type User = {
   email: string;
   username: string;
   role: string;
+  avatarUrl:string;
+
 };
 
 type AuthContextType = {
